@@ -1,6 +1,6 @@
 #include "monty.h"
 /**
-* add - adds the top two elements of the stack
+* _add - adds the top two elements of the stack
 * @stack: contains a number of elements pushed into it
 * @line_number: line we are currently on in the monty bytecode file
 *
