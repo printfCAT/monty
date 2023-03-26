@@ -1,67 +1,84 @@
 #include "monty.h"
+
+#define _POSIX_C_SOURCE 200809L
+
+void file_error(char *argv);
+void error_usage(void);
+int status = 0;
+
 /**
-* main - interpreter for a monty bytecode
-* @argc: argument count
-* @argv: argument vector
-*
-* Return: 0
-*/
-int main(int argc, char *argv[])
+ * main - entry point
+ * @argv: list of arguments passed to our program
+ * @argc: amount of args
+ *
+ * Return: nothing
+ */
+int main(int argc, char **argv)
 {
-	unsigned int line_number = 0;
-	FILE *monty;
-	size_t len = 0;
-	ssize_t rd;
-	char *line = NULL, *opcode, *arg;
+	FILE *file;
+	size_t buf_len = 0;
+	char *buffer = NULL;
+	char *str = NULL;
 	stack_t *stack = NULL;
+	unsigned int line_number = 1;
 
+	global.data_struct = 1;
 	if (argc != 2)
-	{
-		fprintf(stderr, "USAGE: monty file\n");
-		exit(EXIT_FAILURE);
-	}
-	monty = fopen(argv[1], "r");
-	if (!monty)
-	{
-		fprintf(stderr, "Error: Can't open file %s\n", argv[1]);
-		exit(EXIT_FAILURE);
-	}
-	while ((rd = getline(&line, &len, monty)) != -1)
-	{
-		line_number++;
-		opcode = strtok(line, " \t\n");
-		if (!opcode || opcode[0] == '#')
-			continue;
-		if (strcmp(opcode, "push") == 0)
-		{
-			arg = strtok(NULL, " \t\n");
-			if (arg == NULL)
-			{
-				fprintf(stderr, "L%u: usage: push integer\n", line_number);
-				exit(EXIT_FAILURE);
-			}
-			push(&stack, line_number, arg);
-		}
-		else if (strcmp(opcode, "pall") == 0)
-			pall(&stack);
-		else if (strcmp(opcode, "pint") == 0)
-			pint(&stack, line_number);
-		else if (strcmp(opcode, "pop") == 0)
-			pop(&stack, line_number);
-		else if (strcmp(opcode, "swap") == 0)
-			swap(&stack, line_number);
-		else if (strcmp(opcode, "add") == 0)
-			add(&stack, line_number);
-		else if (strcmp(opcode, "nop") == 0)
-			nop;
-		else
-		{
-			fprintf(stderr, "L%u: unknown instruction %s\n", line_number, opcode);
-			exit(EXIT_FAILURE);
-		}
-	}
-	free(line);
-	fclose(monty);
+		error_usage();
 
-	return (0);
+	file = fopen(argv[1], "r");
+
+	if (!file)
+		file_error(argv[1]);
+
+	while ((getline(&buffer, &buf_len, file)) != (-1))
+	{
+		if (status)
+			break;
+		if (*buffer == '\n')
+		{
+			line_number++;
+			continue;
+		}
+		str = strtok(buffer, " \t\n");
+		if (!str || *str == '#')
+		{
+			line_number++;
+			continue;
+		}
+		global.argument = strtok(NULL, " \t\n");
+		opcode(&stack, str, line_number);
+		line_number++;
+	}
+	free(buffer);
+	free_stack(stack);
+	fclose(file);
+	exit(EXIT_SUCCESS);
+}
+
+/**
+ * file_error - prints file error message and exits
+ * @argv: argv given by main()
+ *
+ * Desc: print msg if  not possible to open the file
+ * Return: nothing
+ */
+void file_error(char *argv)
+{
+	fprintf(stderr, "Error: Can't open file %s\n", argv);
+	exit(EXIT_FAILURE);
+}
+
+/**
+ * error_usage - prints usage message and exits
+ *
+ * Desc: if user does not give any file or more than
+ * one argument to your program
+ *
+ * Return: nothing
+ */
+void error_usage(void)
+{
+	fprintf(stderr, "USAGE: monty file\n");
+	exit(EXIT_FAILURE);
 }
